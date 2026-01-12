@@ -1,0 +1,102 @@
+services:
+  nats-server:
+    image: nats:alpine
+    ports:
+      - 4222:4222
+      - 8222:8222
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8222/varz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  client:
+    container_name: client-gateway
+    build:
+      context: ./client-gateway
+      dockerfile: Dockerfile
+      target: development
+    ports:
+      - "${CLIENT_GATEWAY_PORT}:${CLIENT_GATEWAY_PORT}"
+    environment:
+      - PORT=${CLIENT_GATEWAY_PORT}
+      - NATS_SERVERS=${NATS_SERVERS}
+    depends_on:
+      nats-server:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./client-gateway/src
+          target: /usr/src/app/src
+        - action: rebuild
+          path: ./client-gateway/package.json
+
+  products-service:
+    container_name: products-service
+    build:
+      context: ./products-ms
+      dockerfile: Dockerfile
+      target: development
+    environment:
+      - PORT=${PRODUCTS_PORT}
+      - NATS_SERVERS=${NATS_SERVERS}
+      - DATABASE_URL=file:./dev.db
+    depends_on:
+      nats-server:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./products-ms/src
+          target: /usr/src/app/src
+        - action: rebuild
+          path: ./products-ms/package.json
+        - action: sync
+          path: ./products-ms/prisma
+          target: /usr/src/app/prisma
+
+  orders-service:
+    container_name: orders-service
+    build:
+      context: ./orders-ms
+      dockerfile: Dockerfile
+      target: development
+    environment:
+      - PORT=${ORDERS_PORT}
+      - NATS_SERVERS=${NATS_SERVERS}
+      - DATABASE_URL=postgresql://${ORDERS_DB_USER}:${ORDERS_DB_PASSWORD}@${ORDERS_DB_HOST}:${ORDERS_DB_PORT}/${ORDERS_DB_NAME}
+    depends_on:
+      nats-server:
+        condition: service_healthy
+      orders-db-service:
+        condition: service_healthy
+    develop:
+      watch:
+        - action: sync
+          path: ./orders-ms/src
+          target: /usr/src/app/src
+        - action: rebuild
+          path: ./orders-ms/package.json
+        - action: sync
+          path: ./orders-ms/prisma
+          target: /usr/src/app/prisma
+
+  orders-db-service:
+    container_name: orders-db-service
+    image: postgres:17
+    restart: always
+    volumes:
+      - orders-db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${ORDERS_DB_USER}
+      - POSTGRES_PASSWORD=${ORDERS_DB_PASSWORD}
+      - POSTGRES_DB=${ORDERS_DB_NAME}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ORDERS_DB_USER} -d ${ORDERS_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  orders-db-data:
