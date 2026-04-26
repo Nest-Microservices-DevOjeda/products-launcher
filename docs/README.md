@@ -186,6 +186,33 @@ cd ..
 
 Luego en VS Code ejecuta: TypeScript: Restart TS Server.
 
+### Error TS2305 en Prisma (PrismaClient no exportado)
+
+Sintoma:
+
+- `Module '"@prisma/client"' has no exported member 'PrismaClient'.ts(2305)`
+
+Por que pasa:
+
+- En Docker, Prisma Client se genera durante el arranque del servicio.
+- En local, VS Code usa tus `node_modules` del host.
+- Si localmente no corriste `prisma generate` (o se omitieron scripts), el editor no encuentra tipos generados y marca error aunque el sistema corra en contenedor.
+
+Fix local rapido:
+
+```bash
+cd products-ms && corepack pnpm prisma generate
+cd ../orders-ms && corepack pnpm prisma generate
+```
+
+Si `pnpm` reporta scripts bloqueados, aprobar builds una vez:
+
+```bash
+corepack pnpm approve-builds
+```
+
+Luego en VS Code ejecutar: TypeScript: Restart TS Server.
+
 ### Warning de Compose sobre watch y bind mounts
 
 Si aparece warning de rutas no monitorizadas, evita mezclar develop.watch y bind mounts en la misma ruta.
