@@ -1,0 +1,53 @@
+services:
+  nats-server:
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    mem_limit: 256m
+
+  client:
+    build:
+      target: production
+    ports:
+      - "${CLIENT_GATEWAY_PORT}:${CLIENT_GATEWAY_PORT}"
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    mem_limit: 512m
+
+  products-service:
+    build:
+      target: production
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    mem_limit: 512m
+
+  orders-service:
+    build:
+      target: production
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    mem_limit: 512m
+
+  orders-db-service:
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "5"
+    mem_limit: 1g

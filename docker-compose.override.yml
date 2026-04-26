@@ -1,0 +1,33 @@
+services:
+  nats-server:
+    ports:
+      - 4222:4222
+      - 8222:8222
+
+  client:
+    build:
+      target: development
+    ports:
+      - "${CLIENT_GATEWAY_PORT}:${CLIENT_GATEWAY_PORT}"
+    volumes:
+      - ./client-gateway:/usr/src/app
+      - /usr/src/app/node_modules
+
+  products-service:
+    build:
+      target: development
+    volumes:
+      - ./products-ms:/usr/src/app
+      - /usr/src/app/node_modules
+
+  orders-service:
+    build:
+      target: development
+    volumes:
+      - ./orders-ms:/usr/src/app
+      - /usr/src/app/node_modules
+
+  orders-db-service:
+    restart: "no"
+    ports:
+      - "${ORDERS_DB_PORT}:5432"
